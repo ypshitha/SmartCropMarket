@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Heart Disease Analysis Dashboard</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f7fa;
+            color: #333;
+        }
+        .header {
+            background-color: #e63946;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .dashboard-container {
+            display: flex;
+            flex-wrap: wrap;
+            padding: 20px;
+            gap: 20px;
+        }
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 15px;
+            flex: 1 1 300px;
+            min-height: 400px;
+        }
+        .card-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #e63946;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        .kpi-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .kpi {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 15px;
+            flex: 1;
+            min-width: 120px;
+            text-align: center;
+        }
+        .kpi-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #e63946;
+        }
+        .kpi-label {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+        .controls {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        select {
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            margin-right: 10px;
+        }
+        .tab {
+            display: none;
+        }
+        .tab.active {
+            display: block;
+        }
+        .tab-buttons {
+            display: flex;
+            margin-bottom: 20px;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .tab-button {
+            padding: 12px 20px;
+            background: #f8f9fa;
+            border: none;
+            cursor: pointer;
+            flex: 1;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        .tab-button.active {
+            background: #e63946;
+            color: white;
+        }
+        .tab-button:hover {
+            background: #d8e2e9;
+        }
+        .tab-button.active:hover {
+            background: #c1121f;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Heart Disease Analysis Dashboard</h1>
+        <p>Interactive visualization of cardiovascular health indicators</p>
+    </div>
+
+    <div class="controls">
+        <label for="age-filter">Age Group:</label>
+        <select id="age-filter">
+            <option value="all">All Ages</option>
+            <option value="20-29">20-29</option>
+            <option value="30-39">30-39</option>
+            <option value="40-49">40-49</option>
+            <option value="50-59">50-59</option>
+            <option value="60-69">60-69</option>
+            <option value="70-79">70-79</option>
+        </select>
+
+        <label for="sex-filter">Sex:</label>
+        <select id="sex-filter">
+            <option value="all">All</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+        </select>
+
+        <label for="disease-filter">Heart Disease:</label>
+        <select id="disease-filter">
+            <option value="all">All</option>
+            <option value="Heart Disease">Present</option>
+            <option value="No Disease">Absent</option>
+        </select>
+    </div>
+
+    <div class="kpi-container">
+        <div class="kpi">
+            <div class="kpi-value" id="total-patients">0</div>
+            <div class="kpi-label">Total Patients</div>
+        </div>
+        <div class="kpi">
+            <div class="kpi-value" id="disease-rate">0%</div>
+            <div class="kpi-label">Heart Disease Rate</div>
+        </div>
+        <div class="kpi">
+            <div class="kpi-value" id="avg-age">0</div>
+            <div class="kpi-label">Average Age</div>
+        </div>
+        <div class="kpi">
+            <div class="kpi-value" id="avg-bp">0</div>
+            <div class="kpi-label">Avg Blood Pressure</div>
+        </div>
+        <div class="kpi">
+            <div class="kpi-value" id="avg-chol">0</div>
+            <div class="kpi-label">Avg Cholesterol</div>
+        </div>
+    </div>
+
+    <div class="tab-buttons">
+        <button class="tab-button active" onclick="openTab('overview')">Overview</button>
+        <button class="tab-button" onclick="openTab('risk-factors')">Risk Factors</button>
+        <button class="tab-button" onclick="openTab('detailed-analysis')">Detailed Analysis</button>
+    </div>
+
+    <div id="overview" class="tab active">
+        <div class="dashboard-container">
+            <div class="card">
+                <div class="card-title">Heart Disease Distribution</div>
+                <div id="disease-distribution"></div>
+            </div>
+            <div class="card">
+                <div class="card-title">Distribution by Sex</div>
+                <div id="sex-distribution"></div>
+            </div>
+            <div class="card">
+                <div class="card-title">Age Group Distribution</div>
+                <div id="age-distribution"></div>
+            </div>
+            <div class="card">
+                <div class="card-title">Chest Pain Types</div>
+                <div id="chest-pain-distribution"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="risk-factors" class="tab">
+        <div class="dashboard-container">
+            <div class="card">
+                <div class="card-title">Blood Pressure Categories</div>
+                <div id="bp-categories"></div>
+            </div>
+            <div class="card">
+                <div class="card-title">Cholesterol Categories</div>
+                <div id="chol-categories"></div>
+            </div>
+            <div class="card">
+                <div class="card-title">Age vs Cholesterol</div>
+                <div id="age-vs-chol"></div>
+            </div>
+            <div class="card">
+                <div class="card-title">Age vs Blood Pressure</div>
+                <div id="age-vs-bp"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="detailed-analysis" class="tab">
+        <div class="dashboard-container">
+            <div class="card" style="flex: 2;">
+                <div class="card-title">Key Metrics by Age Group</div>
+                <div id="metrics-by-age"></div>
+            </div>
+            <div class="card">
+                <div class="card-title">Exercise Induced Angina</div>
+                <div id="exang-distribution"></div>
+            </div>
+            <div class="card">
+                <div class="card-title">Fasting Blood Sugar</div>
+                <div id="fbs-distribution"></div>
+            </div>
+            <div class="card" style="flex: 2;">
+                <div class="card-title">Correlation Heatmap</div>
+                <div id="correlation-heatmap"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sample data (in a real scenario, you would load from CSV or API)
+        const data = [
+            {age:63,sex:"Male",cp:3,trestbps:145,chol:233,fbs:"<=120 mg/dl",restecg:0,thalach:150,exang:"No",oldpeak:2.3,slope:0,ca:0,thal:1,target:"Heart Disease",age_group:"60-69",bp_category:"High (Stage 2)",chol_category:"High"},
+            {age:37,sex:"Male",cp:2,trestbps:130,chol:250,fbs:"<=120 mg/dl",restecg:1,thalach:187,exang:"No",oldpeak:3.5,slope:0,ca:0,thal:2,target:"Heart Disease",age_group:"30-39",bp_category:"High (Stage 1)",chol_category:"High"},
+            {age:41,sex:"Female",cp:1,trestbps:130,chol:204,fbs:"<=120 mg/dl",restecg:0,thalach:172,exang:"No",oldpeak:1.4,slope:2,ca:0,thal:2,target:"Heart Disease",age_group:"40-49",bp_category:"High (Stage 1)",chol_category:"Borderline High"},
+            {age:56,sex:"Male",cp:1,trestbps:120,chol:236,fbs:"<=120 mg/dl",restecg:1,thalach:178,exang:"No",oldpeak:0.8,slope:2,ca:0,thal:2,target:"Heart Disease",age_group:"50-59",bp_category:"Elevated",chol_category:"High"},
+            {age:57,sex:"Female",cp:0,trestbps:120,chol:354,fbs:"<=120 mg/dl",restecg:1,thalach:163,exang:"Yes",oldpeak:0.6,slope:2,ca:0,thal:2,target:"Heart Disease",age_group:"50-59",bp_category:"Elevated",chol_category:"High"},
+            {age:57,sex:"Male",cp:0,trestbps:140,chol:192,fbs:"<=120 mg/dl",restecg:1,thalach:148,exang:"No",oldpeak:0.4,slope:1,ca:0,thal:1,target:"Heart Disease",age_group:"50-59",bp_category:"High (Stage 1)",chol_category:"Borderline High"},
+            {age:67,sex:"Male",cp:0,trestbps:160,chol:286,fbs:"<=120 mg/dl",restecg:0,thalach:108,exang:"Yes",oldpeak:1.5,slope:1,ca:3,thal:2,target:"No Disease",age_group:"60-69",bp_category:"High (Stage 2)",chol_category:"High"},
+            {age:67,sex:"Male",cp:0,trestbps:120,chol:229,fbs:"<=120 mg/dl",restecg:0,thalach:129,exang:"Yes",oldpeak:2.6,slope:1,ca:2,thal:3,target:"No Disease",age_group:"60-69",bp_category:"Elevated",chol_category:"High"},
+            {age:62,sex:"Female",cp:0,trestbps:140,chol:268,fbs:"<=120 mg/dl",restecg:0,thalach:160,exang:"No",oldpeak:3.6,slope:0,ca:2,thal:2,target:"No Disease",age_group:"60-69",bp_category:"High (Stage 1)",chol_category:"High"},
+            {age:63,sex:"Male",cp:0,trestbps:130,chol:254,fbs:"<=120 mg/dl",restecg:0,thalach:147,exang:"No",oldpeak:1.4,slope:1,ca:1,thal:3,target:"No Disease",age_group:"60-69",bp_category:"High (Stage 1)",chol_category:"High"}
+        ];
+
+        // Initialize dashboard
+        function initDashboard() {
+            updateKPIs(data);
+            renderCharts(data);
+            setupEventListeners();
+        }
+
+        // Update KPI cards
+        function updateKPIs(filteredData) {
+            const total = filteredData.length;
+            const withDisease = filteredData.filter(d => d.target === "Heart Disease").length;
+            const diseaseRate = total > 0 ? Math.round((withDisease / total) * 100) : 0;
+            const avgAge = total > 0 ? Math.round(filteredData.reduce((sum, d) => sum + d.age, 0) / total) : 0;
+            const avgBp = total > 0 ? Math.round(filteredData.reduce((sum, d) => sum + d.trestbps, 0) / total) : 0;
+            const avgChol = total > 0 ? Math.round(filteredData.reduce((sum, d) => sum + d.chol, 0) / total) : 0;
+
+            document.getElementById('total-patients').textContent = total;
+            document.getElementById('disease-rate').textContent = `${diseaseRate}%`;
+            document.getElementById('avg-age').textContent = avgAge;
+            document.getElementById('avg-bp').textContent = avgBp;
+            document.getElementById('avg-chol').textContent = avgChol;
+        }
+
+        // Render all charts
+        function renderCharts(filteredData) {
+            renderDiseaseDistribution(filteredData);
+            renderSexDistribution(filteredData);
+            renderAgeDistribution(filteredData);
+            renderChestPainDistribution(filteredData);
+            renderBpCategories(filteredData);
+            renderCholCategories(filteredData);
+            renderAgeVsChol(filteredData);
+            renderAgeVsBp(filteredData);
+            renderMetricsByAge(filteredData);
+            renderExangDistribution(filteredData);
+            renderFbsDistribution(filteredData);
+            renderCorrelationHeatmap(filteredData);
+        }
+
+        // Individual chart rendering functions
+        function renderDiseaseDistribution(data) {
+            const counts = {};
+            data.forEach(d => {
+                counts[d.target] = (counts[d.target] || 0) + 1;
+            });
+
+            const trace = {
+                values: Object.values(counts),
+                labels: Object.keys(counts),
+                type: 'pie',
+                marker: {
+                    colors: ['#e63946', '#457b9d']
+                }
+            };
+
+            Plotly.newPlot('disease-distribution', [trace], {
+                margin: {t: 0, b: 0, l: 0, r: 0}
+            });
+        }
+
+        function renderSexDistribution(data) {
+            const counts = {};
+            data.forEach(d => {
+                counts[d.sex] = (counts[d.sex] || 0) + 1;
+            });
+
+            const trace = {
+                values: Object.values(counts),
+                labels: Object.keys(counts),
+                type: 'pie',
+                marker: {
+                    colors: ['#1d3557', '#a8dadc']
+                },
+                hole: 0.4
+            };
+
+            Plotly.newPlot('sex-distribution', [trace], {
+                margin: {t: 0, b: 0, l: 0, r: 0}
+            });
+        }
+
+        function renderAgeDistribution(data) {
+            const counts = {};
+            data.forEach(d => {
+                counts[d.age_group] = (counts[d.age_group] || 0) + 1;
+            });
+
+            const trace = {
+                x: Object.keys(counts),
+                y: Object.values(counts),
+                type: 'bar',
+                marker: {
+                    color: '#457b9d'
+                }
+            };
+
+            Plotly.newPlot('age-distribution', [trace], {
+                margin: {t: 0, b: 30, l: 40, r: 0},
+                xaxis: {title: 'Age Group'},
+                yaxis: {title: 'Count'}
+            });
+        }
+
+        function renderChestPainDistribution(data) {
+            const counts = {};
+            data.forEach(d => {
+                counts[d.cp] = (counts[d.cp] || 0) + 1;
+            });
+
+            const trace = {
+                x: Object.keys(counts).map(k => {
+                    switch(k) {
+                        case '0': return 'Typical Angina';
+                        case '1': return 'Atypical Angina';
+                        case '2': return 'Non-anginal Pain';
+                        case '3': return 'Asymptomatic';
+                        default: return k;
+                    }
+                }),
+                y: Object.values(counts),
+                type: 'bar',
+                marker: {
+                    color: '#e63946'
+                }
+            };
+
+            Plotly.newPlot('chest-pain-distribution', [trace], {
+                margin: {t: 0, b: 60, l: 40, r: 0},
+                xaxis: {title: 'Chest Pain Type'},
+                yaxis: {title: 'Count'}
+            });
+        }
+
+        function renderBpCategories(data) {
+            const counts = {};
+            data.forEach(d => {
+                counts[d.bp_category] = (counts[d.bp_category] || 0) + 1;
+            });
+
+            const trace = {
+                x: Object.keys(counts),
+                y: Object.values(counts),
+                type: 'bar',
+                marker: {
+                    color: '#1d3557'
+                }
+            };
+
+            Plotly.newPlot('bp-categories', [trace], {
+                margin: {t: 0, b: 60, l: 40, r: 0},
+                xaxis: {title: 'Blood Pressure Category'},
+                yaxis: {title: 'Count'}
+            });
+        }
+
+        function renderCholCategories(data) {
+            const counts = {};
+            data.forEach(d => {
+                counts[d.chol_category] = (counts[d.chol_category] || 0) + 1;
+            });
+
+            const trace = {
+                x: Object.keys(counts),
+                y: Object.values(counts),
+                type: 'bar',
+                marker: {
+                    color: '#a8dadc'
+                }
+            };
+
+            Plotly.newPlot('chol-categories', [trace], {
+                margin: {t: 0, b: 60, l: 40, r: 0},
+                xaxis: {title: 'Cholesterol Category'},
+                yaxis: {title: 'Count'}
+            });
+        }
+
+        function renderAgeVsChol(data) {
+            const trace1 = {
+                x: data.filter(d => d.target === "Heart Disease").map(d => d.age),
+                y: data.filter(d => d.target === "Heart Disease").map(d => d.chol),
+                mode: 'markers',
+                name: 'Heart Disease',
+                marker: {
+                    color: '#e63946',
+                    size: 10
+                }
+            };
+
+            const trace2 = {
+                x: data.filter(d => d.target === "No Disease").map(d => d.age),
+                y: data.filter(d => d.target === "No Disease").map(d => d.chol),
+                mode: 'markers',
+                name: 'No Disease',
+                marker: {
+                    color: '#457b9d',
+                    size: 10
+                }
+            };
+
+            Plotly.newPlot('age-vs-chol', [trace1, trace2], {
+                margin: {t: 0, b: 30, l: 40, r: 0},
+                xaxis: {title: 'Age'},
+                yaxis: {title: 'Cholesterol (mg/dl)'},
+                legend: {orientation: 'h', y: 1.1}
+            });
+        }
+
+        function renderAgeVsBp(data) {
+            const trace1 = {
+                x: data.filter(d => d.target === "Heart Disease").map(d => d.age),
+                y: data.filter(d => d.target === "Heart Disease").map(d => d.trestbps),
+                mode: 'markers',
+                name: 'Heart Disease',
+                marker: {
+                    color: '#e63946',
+                    size: 10
+                }
+            };
+
+            const trace2 = {
+                x: data.filter(d => d.target === "No Disease").map(d => d.age),
+                y: data.filter(d => d.target === "No Disease").map(d => d.trestbps),
+                mode: 'markers',
+                name: 'No Disease',
+                marker: {
+                    color: '#457b9d',
+                    size: 10
+                }
+            };
+
+            Plotly.newPlot('age-vs-bp', [trace1, trace2], {
+                margin: {t: 0, b: 30, l: 40, r: 0},
+                xaxis: {title: 'Age'},
+                yaxis: {title: 'Resting Blood Pressure (mm Hg)'},
+                legend: {orientation: 'h', y: 1.1}
+            });
+        }
+
+        function renderMetricsByAge(data) {
+            const ageGroups = [...new Set(data.map(d => d.age_group))].sort();
+            
+            const avgBp = ageGroups.map(group => {
+                const groupData = data.filter(d => d.age_group === group);
+                return groupData.length > 0 ? 
+                    groupData.reduce((sum, d) => sum + d.trestbps, 0) / groupData.length : 0;
+            });
+            
+            const avgChol = ageGroups.map(group => {
+                const groupData = data.filter(d => d.age_group === group);
+                return groupData.length > 0 ? 
+                    groupData.reduce((sum, d) => sum + d.chol, 0) / groupData.length : 0;
+            });
+            
+            const diseaseRate = ageGroups.map(group => {
+                const groupData = data.filter(d => d.age_group === group);
+                const withDisease = groupData.filter(d => d.target === "Heart Disease").length;
+                return groupData.length > 0 ? (withDisease / groupData.length) * 100 : 0;
+            });
+
+            const trace1 = {
+                x: ageGroups,
+                y: avgBp,
+                name: 'Avg Blood Pressure',
+                type: 'bar',
+                marker: {
+                    color: '#1d3557'
+                }
+            };
+
+            const trace2 = {
+                x: ageGroups,
+                y: avgChol,
+                name: 'Avg Cholesterol',
+                type: 'bar',
+                marker: {
+                    color: '#457b9d'
+                }
+            };
+
+            const trace3 = {
+                x: ageGroups,
+                y: diseaseRate,
+                name: 'Disease Rate (%)',
+                type: 'line',
+                yaxis: 'y2',
+                line: {
+                    color: '#e63946',
+                    width: 3
+                }
+            };
+
+            Plotly.newPlot('metrics-by-age', [trace1, trace2, trace3], {
+                margin: {t: 0, b: 30, l: 40, r: 40},
+                xaxis: {title: 'Age Group'},
+                yaxis: {title: 'Value (BP/Chol)'},
+                yaxis2: {
+                    title: 'Disease Rate (%)',
+                    overlaying: 'y',
+                    side: 'right',
+                    range: [0, 100]
+                },
+                legend: {orientation: 'h', y: 1.1}
+            });
+        }
+
+        function renderExangDistribution(data) {
+            const counts = {};
+            data.forEach(d => {
+                counts[d.exang] = (counts[d.exang] || 0) + 1;
+            });
+
+            const trace = {
+                values: Object.values(counts),
+                labels: Object.keys(counts),
+                type: 'pie',
+                marker: {
+                    colors: ['#a8dadc', '#1d3557']
+                },
+                hole: 0.4
+            };
+
+            Plotly.newPlot('exang-distribution', [trace], {
+                margin: {t: 0, b: 0, l: 0, r: 0}
+            });
+        }
+
+        function renderFbsDistribution(data) {
+            const counts = {};
+            data.forEach(d => {
+                counts[d.fbs] = (counts[d.fbs] || 0) + 1;
+            });
+
+            const trace = {
+                values: Object.values(counts),
+                labels: Object.keys(counts),
+                type: 'pie',
+                marker: {
+                    colors: ['#457b9d', '#e63946']
+                },
+                hole: 0.4
+            };
+
+            Plotly.newPlot('fbs-distribution', [trace], {
+                margin: {t: 0, b: 0, l: 0, r: 0}
+            });
+        }
+
+        function renderCorrelationHeatmap(data) {
+            // Select numerical features for correlation
+            const numericalFeatures = ['age', 'trestbps', 'chol', 'thalach', 'oldpeak'];
+            const featureNames = ['Age', 'Blood Pressure', 'Cholesterol', 'Max HR', 'ST Depression'];
+            
+            // Calculate correlation matrix
+            const corrMatrix = [];
+            for (let i = 0; i < numericalFeatures.length; i++) {
+                corrMatrix[i] = [];
+                for (let j = 0; j < numericalFeatures.length; j++) {
+                    corrMatrix[i][j] = calculateCorrelation(
+                        data.map(d => d[numericalFeatures[i]]),
+                        data.map(d => d[numericalFeatures[j]])
+                    );
+                }
+            }
+
+            const trace = {
+                z: corrMatrix,
+                x: featureNames,
+                y: featureNames,
+                type: 'heatmap',
+                colorscale: 'Blues'
+            };
+
+            Plotly.newPlot('correlation-heatmap', [trace], {
+                margin: {t: 0, b: 60, l: 60, r: 0}
+            });
+        }
+
+        function calculateCorrelation(x, y) {
+            const n = x.length;
+            const meanX = x.reduce((a, b) => a + b, 0) / n;
+            const meanY = y.reduce((a, b) => a + b, 0) / n;
+            
+            let cov = 0;
+            let stdX = 0;
+            let stdY = 0;
+            
+            for (let i = 0; i < n; i++) {
+                cov += (x[i] - meanX) * (y[i] - meanY);
+                stdX += Math.pow(x[i] - meanX, 2);
+                stdY += Math.pow(y[i] - meanY, 2);
+            }
+            
+            stdX = Math.sqrt(stdX / n);
+            stdY = Math.sqrt(stdY / n);
+            
+            return cov / (n * stdX * stdY);
+        }
+
+        // Tab functionality
+        function openTab(tabName) {
+            const tabs = document.getElementsByClassName('tab');
+            for (let i = 0; i < tabs.length; i++) {
+                tabs[i].classList.remove('active');
+            }
+            
+            const tabButtons = document.getElementsByClassName('tab-button');
+            for (let i = 0; i < tabButtons.length; i++) {
+                tabButtons[i].classList.remove('active');
+            }
+            
+            document.getElementById(tabName).classList.add('active');
+            event.currentTarget.classList.add('active');
+        }
+
+        // Filter functionality
+        function setupEventListeners() {
+            document.getElementById('age-filter').addEventListener('change', applyFilters);
+            document.getElementById('sex-filter').addEventListener('change', applyFilters);
+            document.getElementById('disease-filter').addEventListener('change', applyFilters);
+        }
+
+        function applyFilters() {
+            const ageFilter = document.getElementById('age-filter').value;
+            const sexFilter = document.getElementById('sex-filter').value;
+            const diseaseFilter = document.getElementById('disease-filter').value;
+
+            let filteredData = [...data];
+            
+            if (ageFilter !== 'all') {
+                filteredData = filteredData.filter(d => d.age_group === ageFilter);
+            }
+            
+            if (sexFilter !== 'all') {
+                filteredData = filteredData.filter(d => d.sex === sexFilter);
+            }
+            
+            if (diseaseFilter !== 'all') {
+                filteredData = filteredData.filter(d => d.target === diseaseFilter);
+            }
+            
+            updateKPIs(filteredData);
+            renderCharts(filteredData);
+        }
+
+        // Initialize the dashboard when the page loads
+        window.onload = initDashboard;
+    </script>
+</body>
+</html>
